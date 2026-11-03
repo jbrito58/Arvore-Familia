@@ -1,0 +1,23 @@
+{
+  "name": "Nossa Árvore — Memorial Familiar",
+  "short_name": "Nossa Árvore",
+  "description": "Cada pessoa é um galho. Cada história mantém nossas raízes vivas.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#060B18",
+  "theme_color": "#0B132B",
+  "icons": [
+    {
+      "src": "/assets/aistudio/image_023006cc.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/assets/aistudio/image_023006cc.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
+}

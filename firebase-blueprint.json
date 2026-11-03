@@ -1,0 +1,147 @@
+{
+  "entities": {
+    "User": {
+      "title": "User",
+      "description": "User profile in the application",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "name": { "type": "string" },
+        "email": { "type": "string" },
+        "photoURL": { "type": "string" },
+        "createdAt": { "type": "string" },
+        "updatedAt": { "type": "string" }
+      },
+      "required": ["id", "name", "email"]
+    },
+    "FamilyTree": {
+      "title": "FamilyTree",
+      "description": "Family tree entity metadata",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "name": { "type": "string" },
+        "surname": { "type": "string" },
+        "description": { "type": "string" },
+        "coverImage": { "type": "string" },
+        "ownerId": { "type": "string" },
+        "referencePersonId": { "type": "string" },
+        "privacy": { "type": "string" },
+        "createdAt": { "type": "string" },
+        "updatedAt": { "type": "string" }
+      },
+      "required": ["id", "name", "ownerId"]
+    },
+    "Person": {
+      "title": "Person",
+      "description": "A person in a family tree",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "treeId": { "type": "string" },
+        "firstName": { "type": "string" },
+        "middleName": { "type": "string" },
+        "lastName": { "type": "string" },
+        "fullName": { "type": "string" },
+        "nickname": { "type": "string" },
+        "gender": { "type": "string" },
+        "profilePhoto": { "type": "string" },
+        "birthDate": { "type": "string" },
+        "birthDateApproximate": { "type": "boolean" },
+        "birthPlace": { "type": "string" },
+        "isLiving": { "type": "boolean" },
+        "deathDate": { "type": "string" },
+        "deathDateApproximate": { "type": "boolean" },
+        "deathPlace": { "type": "string" },
+        "burialPlace": { "type": "string" },
+        "biography": { "type": "string" },
+        "notes": { "type": "string" },
+        "recordStatus": { "type": "string" },
+        "createdBy": { "type": "string" },
+        "createdAt": { "type": "string" },
+        "updatedAt": { "type": "string" }
+      },
+      "required": ["id", "treeId", "fullName", "createdBy"]
+    },
+    "Relationship": {
+      "title": "Relationship",
+      "description": "Kinship or marriage connection between two people",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "treeId": { "type": "string" },
+        "person1Id": { "type": "string" },
+        "person2Id": { "type": "string" },
+        "relationshipType": { "type": "string" },
+        "parentType": { "type": "string" },
+        "startDate": { "type": "string" },
+        "endDate": { "type": "string" },
+        "notes": { "type": "string" },
+        "createdAt": { "type": "string" },
+        "updatedAt": { "type": "string" }
+      },
+      "required": ["id", "treeId", "person1Id", "person2Id", "relationshipType"]
+    },
+    "FamilyEvent": {
+      "title": "FamilyEvent",
+      "description": "An event associated with people in the family tree",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "treeId": { "type": "string" },
+        "eventType": { "type": "string" },
+        "title": { "type": "string" },
+        "date": { "type": "string" },
+        "dateApproximate": { "type": "boolean" },
+        "location": { "type": "string" },
+        "description": { "type": "string" },
+        "createdAt": { "type": "string" }
+      },
+      "required": ["id", "treeId", "title"]
+    },
+    "FamilyMedia": {
+      "title": "FamilyMedia",
+      "description": "Photo, video, audio, or document memory",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "treeId": { "type": "string" },
+        "fileType": { "type": "string" },
+        "fileURL": { "type": "string" },
+        "title": { "type": "string" },
+        "description": { "type": "string" },
+        "date": { "type": "string" },
+        "location": { "type": "string" },
+        "source": { "type": "string" },
+        "createdAt": { "type": "string" }
+      },
+      "required": ["id", "treeId", "title", "fileURL"]
+    }
+  },
+  "firestore": {
+    "/users/{userId}": {
+      "schema": "User",
+      "description": "User profiles"
+    },
+    "/familyTrees/{treeId}": {
+      "schema": "FamilyTree",
+      "description": "Family tree instances owned by users"
+    },
+    "/people/{personId}": {
+      "schema": "Person",
+      "description": "People registered within family trees"
+    },
+    "/relationships/{relationshipId}": {
+      "schema": "Relationship",
+      "description": "Kinship connections between people"
+    },
+    "/events/{eventId}": {
+      "schema": "FamilyEvent",
+      "description": "Events in family history"
+    },
+    "/media/{mediaId}": {
+      "schema": "FamilyMedia",
+      "description": "Family media and digital memories"
+    }
+  }
+}
