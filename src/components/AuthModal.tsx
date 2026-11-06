@@ -9,9 +9,17 @@ import {
   User,
   Sparkles,
   CheckCircle,
-  AlertCircle
+  AlertCircle,
+  ExternalLink,
+  KeyRound
 } from 'lucide-react';
-import { loginWithGoogle } from '../firebase/config';
+import {
+  loginWithGoogle,
+  loginWithEmail,
+  registerWithEmail,
+  resetPassword,
+  getFriendlyAuthErrorMessage
+} from '../firebase/config';
 
 interface AuthModalProps {
   isOpen: boolean;
@@ -30,12 +38,16 @@ export const AuthModal: React.FC<AuthModalProps> = ({
   const [name, setName] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [authErrorCode, setAuthErrorCode] = useState<string | null>(null);
+  const [successMessage, setSuccessMessage] = useState<string | null>(null);
 
   if (!isOpen) return null;
 
   const handleGoogleSignIn = async () => {
     setLoading(true);
     setError(null);
+    setAuthErrorCode(null);
+    setSuccessMessage(null);
     try {
       const user = await loginWithGoogle();
       if (user) {
@@ -43,24 +55,100 @@ export const AuthModal: React.FC<AuthModalProps> = ({
         onClose();
       }
     } catch (err: any) {
-      console.error(err);
-      setError('Falha ao autenticar com o Google. Verifique a janela de permissão.');
+      console.error('Erro na autenticação do Google:', err);
+      const friendly = getFriendlyAuthErrorMessage(err);
+      setError(friendly.message);
+      setAuthErrorCode(friendly.code || null);
     } finally {
       setLoading(false);
     }
   };
 
-  const handleEmailAuth = (e: React.FormEvent) => {
+  const handleEmailAuth = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!email) return;
 
-    // Autenticação local / simulação
-    const mockUser = {
-      uid: 'user-' + Date.now(),
-      email,
-      displayName: name || email.split('@')[0],
+    setLoading(true);
+    setError(null);
+    setAuthErrorCode(null);
+    setSuccessMessage(null);
+
+    if (mode === 'forgot') {
+      try {
+        await resetPassword(email);
+        setSuccessMessage('E-mail de recuperação enviado com sucesso! Verifique sua caixa de entrada.');
+      } catch (err: any) {
+        const friendly = getFriendlyAuthErrorMessage(err);
+        setError(friendly.message);
+        setAuthErrorCode(friendly.code || null);
+      } finally {
+        setLoading(false);
+      }
+      return;
+    }
+
+    if (mode === 'register') {
+      try {
+        const user = await registerWithEmail(email, password, name);
+        if (user) {
+          onLoginSuccess(user);
+          onClose();
+        }
+      } catch (err: any) {
+        if (err.code === 'auth/operation-not-allowed' || err.code === 'auth/network-request-failed') {
+          // Fallback para sessão local se o console não estiver configurado
+          const localUser = {
+            uid: 'local-' + Date.now(),
+            email,
+            displayName: name || email.split('@')[0],
+          };
+          onLoginSuccess(localUser);
+          onClose();
+        } else {
+          const friendly = getFriendlyAuthErrorMessage(err);
+          setError(friendly.message);
+          setAuthErrorCode(friendly.code || null);
+        }
+      } finally {
+        setLoading(false);
+      }
+      return;
+    }
+
+    // Modo login tradicional
+    try {
+      const user = await loginWithEmail(email, password);
+      if (user) {
+        onLoginSuccess(user);
+        onClose();
+      }
+    } catch (err: any) {
+      if (err.code === 'auth/operation-not-allowed') {
+        const localUser = {
+          uid: 'local-' + Date.now(),
+          email,
+          displayName: email.split('@')[0],
+        };
+        onLoginSuccess(localUser);
+        onClose();
+      } else {
+        const friendly = getFriendlyAuthErrorMessage(err);
+        setError(friendly.message);
+        setAuthErrorCode(friendly.code || null);
+      }
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleGuestLogin = () => {
+    const guestUser = {
+      uid: 'guest-' + Date.now(),
+      email: 'convidado@nossaarvore.local',
+      displayName: 'Familiar Convidado',
+      isAnonymous: true,
     };
-    onLoginSuccess(mockUser);
+    onLoginSuccess(guestUser);
     onClose();
   };
 
@@ -93,9 +181,38 @@ export const AuthModal: React.FC<AuthModalProps> = ({
         </div>
 
         {error && (
-          <div className="p-3 rounded-xl bg-rose-950/60 border border-rose-500/40 text-xs text-rose-300 flex items-center gap-2">
-            <AlertCircle className="w-4 h-4 shrink-0" />
-            <span>{error}</span>
+          <div className="p-3.5 rounded-2xl bg-rose-950/70 border border-rose-500/50 text-xs text-rose-200 space-y-2">
+            <div className="flex items-start gap-2">
+              <AlertCircle className="w-4 h-4 shrink-0 text-rose-400 mt-0.5" />
+              <div className="leading-relaxed">{error}</div>
+            </div>
+            {authErrorCode === 'auth/popup-blocked' && (
+              <div className="text-[11px] text-amber-300 bg-amber-950/40 p-2.5 rounded-xl border border-amber-500/30 space-y-1">
+                <div className="font-semibold flex items-center gap-1.5">
+                  <span>💡 Como permitir o pop-up no navegador:</span>
+                </div>
+                <p className="text-slate-300">
+                  Na barra de endereços do seu navegador, clique no ícone de bloqueio de pop-up e selecione <strong>"Sempre permitir pop-ups deste site"</strong>. Em seguida, clique novamente no botão Google.
+                </p>
+              </div>
+            )}
+            {authErrorCode === 'auth/unauthorized-domain' && (
+              <div className="text-[11px] text-amber-300 bg-amber-950/40 p-2.5 rounded-xl border border-amber-500/30 space-y-1">
+                <div className="font-semibold flex items-center gap-1.5">
+                  <span>💡 Opção rápida:</span>
+                </div>
+                <p className="text-slate-300">
+                  Você pode entrar imediatamente utilizando o formulário de <strong>E-mail e Senha</strong> logo abaixo ou pelo botão de acesso local.
+                </p>
+              </div>
+            )}
+          </div>
+        )}
+
+        {successMessage && (
+          <div className="p-3.5 rounded-2xl bg-emerald-950/70 border border-emerald-500/50 text-xs text-emerald-200 flex items-center gap-2">
+            <CheckCircle className="w-4 h-4 shrink-0 text-emerald-400" />
+            <span>{successMessage}</span>
           </div>
         )}
 
@@ -108,7 +225,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
             <p>4. <strong>Portabilidade total:</strong> Você pode exportar todos os dados em JSON e CSV ou excluir sua árvore a qualquer instante.</p>
             <button
               onClick={() => setMode('login')}
-              className="w-full mt-4 py-2 rounded-xl bg-slate-800 text-xs font-semibold text-amber-300"
+              className="w-full mt-4 py-2 rounded-xl bg-slate-800 text-xs font-semibold text-amber-300 cursor-pointer"
             >
               Voltar ao Login
             </button>
@@ -119,7 +236,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
             <button
               onClick={handleGoogleSignIn}
               disabled={loading}
-              className="w-full flex items-center justify-center gap-3 py-3 px-4 rounded-2xl bg-white hover:bg-slate-100 text-slate-900 font-semibold text-xs shadow-md transition-colors cursor-pointer"
+              className="w-full flex items-center justify-center gap-3 py-3 px-4 rounded-2xl bg-white hover:bg-slate-100 text-slate-900 font-semibold text-xs shadow-md transition-colors cursor-pointer disabled:opacity-50"
             >
               <svg className="w-4 h-4" viewBox="0 0 24 24">
                 <path
@@ -177,7 +294,18 @@ export const AuthModal: React.FC<AuthModalProps> = ({
 
               {mode !== 'forgot' && (
                 <div>
-                  <label className="block text-[11px] text-slate-400 mb-1">Senha</label>
+                  <div className="flex items-center justify-between mb-1">
+                    <label className="block text-[11px] text-slate-400">Senha</label>
+                    {mode === 'login' && (
+                      <button
+                        type="button"
+                        onClick={() => setMode('forgot')}
+                        className="text-[10px] text-amber-400/80 hover:text-amber-300"
+                      >
+                        Esqueceu?
+                      </button>
+                    )}
+                  </div>
                   <input
                     type="password"
                     value={password}
@@ -191,27 +319,39 @@ export const AuthModal: React.FC<AuthModalProps> = ({
 
               <button
                 type="submit"
-                className="w-full py-2.5 rounded-xl bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-slate-950 font-bold text-xs shadow-lg shadow-amber-950/40 cursor-pointer"
+                disabled={loading}
+                className="w-full py-2.5 rounded-xl bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-slate-950 font-bold text-xs shadow-lg shadow-amber-950/40 cursor-pointer disabled:opacity-50 transition-transform active:scale-98"
               >
-                {mode === 'login' ? 'Entrar' : mode === 'register' ? 'Criar Conta' : 'Enviar Link de Recuperação'}
+                {loading ? 'Aguarde...' : mode === 'login' ? 'Entrar' : mode === 'register' ? 'Criar Conta' : 'Enviar Link de Recuperação'}
               </button>
             </form>
 
             <div className="flex items-center justify-between text-xs text-slate-400 pt-2 border-t border-slate-800">
               {mode === 'login' ? (
                 <>
-                  <button onClick={() => setMode('register')} className="text-amber-400 hover:underline">
+                  <button type="button" onClick={() => setMode('register')} className="text-amber-400 hover:underline cursor-pointer">
                     Criar conta nova
                   </button>
-                  <button onClick={() => setMode('privacy')} className="text-slate-400 hover:underline">
+                  <button type="button" onClick={() => setMode('privacy')} className="text-slate-400 hover:underline cursor-pointer">
                     Privacidade
                   </button>
                 </>
               ) : (
-                <button onClick={() => setMode('login')} className="text-amber-400 hover:underline">
+                <button type="button" onClick={() => setMode('login')} className="text-amber-400 hover:underline cursor-pointer">
                   Já tenho conta (Entrar)
                 </button>
               )}
+            </div>
+
+            {/* Acesso Local / Convidado Sem Bloqueios */}
+            <div className="pt-2 text-center border-t border-slate-800/60">
+              <button
+                type="button"
+                onClick={handleGuestLogin}
+                className="text-[11px] text-slate-400 hover:text-amber-300 transition-colors underline cursor-pointer"
+              >
+                Continuar sem login (Acesso Convidado / Uso Local)
+              </button>
             </div>
           </div>
         )}
