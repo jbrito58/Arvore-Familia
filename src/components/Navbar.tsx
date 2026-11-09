@@ -18,7 +18,9 @@ import {
   AlertCircle,
   FolderPlus,
   ChevronDown,
-  Check
+  Check,
+  Database,
+  Share2
 } from 'lucide-react';
 import { FamilyTree, Person } from '../types/genealogy';
 
@@ -36,6 +38,7 @@ interface NavbarProps {
   toggleDarkMode: () => void;
   onOpenAddPerson: () => void;
   onOpenImportExport: () => void;
+  onOpenSupabaseModal?: () => void;
   onOpenAuthModal: () => void;
   onOpenHelpModal: () => void;
   onClearDemoData: () => void;
@@ -61,6 +64,7 @@ export const Navbar: React.FC<NavbarProps> = ({
   toggleDarkMode,
   onOpenAddPerson,
   onOpenImportExport,
+  onOpenSupabaseModal,
   onOpenAuthModal,
   onOpenHelpModal,
   onClearDemoData,
@@ -395,6 +399,31 @@ export const Navbar: React.FC<NavbarProps> = ({
             >
               <Download className="w-4 h-4" />
             </button>
+
+            {/* Compartilhar Link */}
+            <button
+              onClick={() => {
+                const url = 'https://ais-pre-natsptp33ob57cmo6yn26r-274188502497.us-east1.run.app';
+                navigator.clipboard.writeText(url);
+                alert(`Link de compartilhamento copiado para a área de transferência:\n\n${url}`);
+              }}
+              className="p-2 rounded-lg bg-slate-800/70 border border-slate-700 hover:border-emerald-400/50 text-slate-300 hover:text-emerald-300 transition-colors cursor-pointer"
+              title="Copiar Link para Compartilhar com Familiares"
+            >
+              <Share2 className="w-4 h-4 text-emerald-400" />
+            </button>
+
+            {/* Supabase Cloud Database */}
+            {onOpenSupabaseModal && (
+              <button
+                onClick={onOpenSupabaseModal}
+                className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-emerald-950/60 border border-emerald-500/50 text-emerald-300 hover:text-emerald-100 hover:bg-emerald-900/60 transition-colors cursor-pointer shadow-sm shadow-emerald-950/40"
+                title="Banco de Dados Supabase (PostgreSQL na Nuvem)"
+              >
+                <Database className="w-4 h-4 text-emerald-400" />
+                <span className="text-xs font-semibold text-emerald-300 hidden md:inline">Supabase</span>
+              </button>
+            )}
 
             {/* Alternar Tema Claro / Escuro */}
             <button

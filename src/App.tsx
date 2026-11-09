@@ -22,6 +22,13 @@ import { ImportExportModal } from './components/ImportExportModal';
 import { AuthModal } from './components/AuthModal';
 import { HelpModal } from './components/HelpModal';
 import { NewTreeModal } from './components/NewTreeModal';
+import { SupabaseSyncModal } from './components/SupabaseSyncModal';
+import {
+  syncPersonToSupabase,
+  deletePersonFromSupabase,
+  syncRelationshipToSupabase,
+  syncTreeToSupabase
+} from './supabase/client';
 
 import { Person, Relationship, FamilyEvent, FamilyMedia, FamilyTree } from './types/genealogy';
 import {
@@ -66,6 +73,7 @@ export default function App() {
   const [isImportModalOpen, setIsImportModalOpen] = useState(false);
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
   const [isHelpModalOpen, setIsHelpModalOpen] = useState(false);
+  const [isSupabaseModalOpen, setIsSupabaseModalOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
 
   // Árvore ativa e dados filtrados para a árvore corrente
@@ -189,7 +197,8 @@ export default function App() {
             updatedAt: now,
           };
           updatedRelationships.push(newRel);
-          if (currentUser) syncRelationshipToFirestore(newRel);
+          if (currentUser) syncRelationshipToFirestore(newRel, currentUser.uid);
+          syncRelationshipToSupabase(newRel).catch(() => {});
         }
       }
 
@@ -210,7 +219,8 @@ export default function App() {
             updatedAt: now,
           };
           updatedRelationships.push(newRel);
-          if (currentUser) syncRelationshipToFirestore(newRel);
+          if (currentUser) syncRelationshipToFirestore(newRel, currentUser.uid);
+          syncRelationshipToSupabase(newRel).catch(() => {});
         }
       }
 
@@ -232,7 +242,8 @@ export default function App() {
             updatedAt: now,
           };
           updatedRelationships.push(newRel);
-          if (currentUser) syncRelationshipToFirestore(newRel);
+          if (currentUser) syncRelationshipToFirestore(newRel, currentUser.uid);
+          syncRelationshipToSupabase(newRel).catch(() => {});
         }
       }
 
@@ -253,7 +264,8 @@ export default function App() {
             updatedAt: now,
           };
           updatedRelationships.push(newRel);
-          if (currentUser) syncRelationshipToFirestore(newRel);
+          if (currentUser) syncRelationshipToFirestore(newRel, currentUser.uid);
+          syncRelationshipToSupabase(newRel).catch(() => {});
         }
       }
 
@@ -261,6 +273,8 @@ export default function App() {
       if (currentUser) {
         syncPersonToFirestore(personWithTree, currentUser.uid);
       }
+      // Sincronizar no Supabase
+      syncPersonToSupabase(personWithTree).catch(() => {});
 
       const taggedEvents = newEvents.map(e => ({ ...e, treeId: e.treeId || currentTree.id }));
       const taggedMedia = newMedia.map(m => ({ ...m, treeId: m.treeId || currentTree.id }));
@@ -304,6 +318,7 @@ export default function App() {
       if (currentUser) {
         deletePersonFromFirestore(personId);
       }
+      deletePersonFromSupabase(personId).catch(() => {});
       return {
         ...prev,
         people: updatedPeople,
@@ -351,6 +366,7 @@ export default function App() {
     if (currentUser) {
       syncTreeToFirestore(newTree, currentUser.uid);
     }
+    syncTreeToSupabase(newTree).catch(() => {});
     try {
       confetti({
         particleCount: 50,
@@ -508,6 +524,7 @@ export default function App() {
           setIsFormModalOpen(true);
         }}
         onOpenImportExport={() => setIsImportModalOpen(true)}
+        onOpenSupabaseModal={() => setIsSupabaseModalOpen(true)}
         onOpenAuthModal={() => setIsAuthModalOpen(true)}
         onOpenHelpModal={() => setIsHelpModalOpen(true)}
         onClearDemoData={handleClearDemoData}
@@ -720,6 +737,19 @@ export default function App() {
         <HelpModal
           isOpen={isHelpModalOpen}
           onClose={() => setIsHelpModalOpen(false)}
+        />
+      )}
+
+      {isSupabaseModalOpen && (
+        <SupabaseSyncModal
+          isOpen={isSupabaseModalOpen}
+          onClose={() => setIsSupabaseModalOpen(false)}
+          appState={appState}
+          onApplyImportedState={newState => {
+            setAppState(newState);
+            saveLocalState(newState);
+          }}
+          onShowToast={showToast}
         />
       )}
 

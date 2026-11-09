@@ -278,9 +278,13 @@ export async function deletePersonFromFirestore(personId: string) {
   }
 }
 
-export async function syncRelationshipToFirestore(rel: Relationship) {
+export async function syncRelationshipToFirestore(rel: Relationship, userId?: string) {
   try {
-    await setDoc(doc(db, 'relationships', rel.id), rel);
+    await setDoc(doc(db, 'relationships', rel.id), {
+      ...rel,
+      ...(userId ? { createdBy: userId } : {}),
+      updatedAt: new Date().toISOString(),
+    });
   } catch (err) {
     handleFirestoreError(err, OperationType.WRITE, `relationships/${rel.id}`);
   }

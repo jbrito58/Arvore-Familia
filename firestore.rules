@@ -2,7 +2,7 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
-    // Default deny all access
+    // Negar todo o acesso não explicitamente permitido
     match /{document=**} {
       allow read, write: if false;
     }
@@ -15,65 +15,99 @@ service cloud.firestore {
       return isSignedIn() && request.auth.uid == userId;
     }
 
-    function isValidId(id) {
-      return id is string && id.size() > 0 && id.size() <= 128;
+    function isTreeOwner(treeId) {
+      return isSignedIn() &&
+        exists(/databases/$(database)/documents/familyTrees/$(treeId)) &&
+        get(/databases/$(database)/documents/familyTrees/$(treeId)).data.ownerId == request.auth.uid;
     }
 
-    // User profiles
+    function canReadTree(treeId) {
+      return isSignedIn() &&
+        exists(/databases/$(database)/documents/familyTrees/$(treeId)) && (
+          get(/databases/$(database)/documents/familyTrees/$(treeId)).data.ownerId == request.auth.uid ||
+          get(/databases/$(database)/documents/familyTrees/$(treeId)).data.privacy == 'public'
+        );
+    }
+
+    // Perfil de Usuários
     match /users/{userId} {
-      allow get: if isSignedIn() && (request.auth.uid == userId);
+      allow get: if isOwner(userId);
       allow list: if false;
-      allow create: if isOwner(userId) && request.resource.data.id == userId;
-      allow update: if isOwner(userId) && request.resource.data.id == userId;
-      allow delete: if isOwner(userId);
+      allow create, update, delete: if isOwner(userId);
     }
 
-    // Family Trees
+    // Árvores Genealógicas
     match /familyTrees/{treeId} {
-      allow read: if isSignedIn() && (resource.data.ownerId == request.auth.uid || resource.data.privacy == 'public');
+      allow read: if isSignedIn() && (
+        resource.data.ownerId == request.auth.uid ||
+        resource.data.privacy == 'public'
+      );
       allow create: if isSignedIn() && request.resource.data.ownerId == request.auth.uid;
       allow update: if isSignedIn() && resource.data.ownerId == request.auth.uid && request.resource.data.ownerId == request.auth.uid;
       allow delete: if isSignedIn() && resource.data.ownerId == request.auth.uid;
     }
 
-    // People
+    // Pessoas / Familiares
     match /people/{personId} {
-      allow read: if isSignedIn();
-      allow create: if isSignedIn() && request.resource.data.createdBy == request.auth.uid;
-      allow update: if isSignedIn();
-      allow delete: if isSignedIn();
+      allow read: if isSignedIn() && (
+        resource.data.createdBy == request.auth.uid ||
+        canReadTree(resource.data.treeId)
+      );
+      allow create: if isSignedIn() && (
+        request.resource.data.createdBy == request.auth.uid ||
+        isTreeOwner(request.resource.data.treeId)
+      );
+      allow update: if isSignedIn() && (
+        resource.data.createdBy == request.auth.uid ||
+        isTreeOwner(resource.data.treeId)
+      );
+      allow delete: if isSignedIn() && (
+        resource.data.createdBy == request.auth.uid ||
+        isTreeOwner(resource.data.treeId)
+      );
     }
 
-    // Relationships
+    // Relacionamentos de Parentesco
     match /relationships/{relId} {
-      allow read: if isSignedIn();
-      allow create: if isSignedIn();
-      allow update: if isSignedIn();
-      allow delete: if isSignedIn();
+      allow read: if isSignedIn() && (
+        (resource.data.createdBy != null && resource.data.createdBy == request.auth.uid) ||
+        canReadTree(resource.data.treeId)
+      );
+      allow create: if isSignedIn() && (
+        (request.resource.data.createdBy != null && request.resource.data.createdBy == request.auth.uid) ||
+        isTreeOwner(request.resource.data.treeId)
+      );
+      allow update: if isSignedIn() && (
+        (resource.data.createdBy != null && resource.data.createdBy == request.auth.uid) ||
+        isTreeOwner(resource.data.treeId)
+      );
+      allow delete: if isSignedIn() && (
+        (resource.data.createdBy != null && resource.data.createdBy == request.auth.uid) ||
+        isTreeOwner(resource.data.treeId)
+      );
     }
 
-    // Events
+    // Eventos e Linha do Tempo
     match /events/{eventId} {
-      allow read: if isSignedIn();
-      allow create: if isSignedIn();
-      allow update: if isSignedIn();
-      allow delete: if isSignedIn();
+      allow read: if isSignedIn() && canReadTree(resource.data.treeId);
+      allow create: if isSignedIn() && isTreeOwner(request.resource.data.treeId);
+      allow update: if isSignedIn() && isTreeOwner(resource.data.treeId);
+      allow delete: if isSignedIn() && isTreeOwner(resource.data.treeId);
     }
 
-    // Media and documents
+    // Mídias, Fotografias e Documentos
     match /media/{mediaId} {
-      allow read: if isSignedIn();
-      allow create: if isSignedIn();
-      allow update: if isSignedIn();
-      allow delete: if isSignedIn();
+      allow read: if isSignedIn() && canReadTree(resource.data.treeId);
+      allow create: if isSignedIn() && isTreeOwner(request.resource.data.treeId);
+      allow update: if isSignedIn() && isTreeOwner(resource.data.treeId);
+      allow delete: if isSignedIn() && isTreeOwner(resource.data.treeId);
     }
 
-    // History
+    // Histórico de Alterações
     match /changeHistory/{historyId} {
-      allow read: if isSignedIn();
-      allow create: if isSignedIn();
-      allow update: if false;
-      allow delete: if false;
+      allow read: if isSignedIn() && canReadTree(resource.data.treeId);
+      allow create: if isSignedIn() && isTreeOwner(request.resource.data.treeId);
+      allow update, delete: if false;
     }
   }
 }
