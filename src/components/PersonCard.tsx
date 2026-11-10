@@ -14,6 +14,7 @@ import {
   Trash2
 } from 'lucide-react';
 import { Person } from '../types/genealogy';
+import { parseDateComponents } from '../utils/dateUtils';
 
 interface PersonCardProps {
   person: Person;
@@ -46,8 +47,8 @@ export const PersonCard: React.FC<PersonCardProps> = ({
 }) => {
   const [menuOpen, setMenuOpen] = React.useState(false);
 
-  const birthYear = person.birthDate ? person.birthDate.substring(0, 4) : '?';
-  const deathYear = person.deathDate ? person.deathDate.substring(0, 4) : null;
+  const birthYear = parseDateComponents(person.birthDate).yearStr || '?';
+  const deathYear = person.deathDate ? parseDateComponents(person.deathDate).yearStr : null;
   const isIncomplete = person.recordStatus === 'incompleto' || person.recordStatus === 'em_pesquisa';
 
   const defaultPhoto = person.gender === 'F'

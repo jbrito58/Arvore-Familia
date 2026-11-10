@@ -21,6 +21,7 @@ import {
 } from 'lucide-react';
 import { Person, Relationship, FamilyEvent, FamilyMedia } from '../types/genealogy';
 import { getParents, getChildren, getSpouses, getSiblings } from '../services/genealogyEngine';
+import { formatLifespan, parseDateComponents } from '../utils/dateUtils';
 
 interface PersonProfileModalProps {
   person: Person | null;
@@ -343,7 +344,7 @@ export const PersonProfileModal: React.FC<PersonProfileModalProps> = ({
                           <div>
                             <div className="text-xs font-semibold text-slate-100">{p.fullName}</div>
                             <div className="text-[10px] text-slate-400">
-                              {p.birthDate ? p.birthDate.substring(0, 4) : '?'} — {p.deathDate ? p.deathDate.substring(0, 4) : (p.isLiving ? 'Presente' : '?')}
+                              {formatLifespan(p.birthDate, p.deathDate, p.isLiving)}
                             </div>
                           </div>
                         </div>
@@ -433,7 +434,7 @@ export const PersonProfileModal: React.FC<PersonProfileModalProps> = ({
                           <div>
                             <div className="text-xs font-semibold text-slate-100">{c.fullName}</div>
                             <div className="text-[10px] text-slate-400">
-                              Nascido em {c.birthDate ? c.birthDate.substring(0, 4) : 'Ano desconhecido'}
+                              Nascido em {parseDateComponents(c.birthDate).yearStr || 'Ano desconhecido'}
                             </div>
                           </div>
                         </div>

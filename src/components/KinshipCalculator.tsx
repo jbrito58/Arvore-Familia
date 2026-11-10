@@ -11,6 +11,7 @@ import {
 } from 'lucide-react';
 import { Person, Relationship, KinshipResult } from '../types/genealogy';
 import { calculateKinship } from '../services/genealogyEngine';
+import { parseDateComponents } from '../utils/dateUtils';
 
 interface KinshipCalculatorProps {
   people: Person[];
@@ -70,11 +71,14 @@ export const KinshipCalculator: React.FC<KinshipCalculatorProps> = ({
             onChange={e => setPerson1Id(e.target.value)}
             className="w-full bg-slate-800 border border-slate-700 rounded-2xl p-3 text-sm text-slate-100 focus:outline-none focus:border-amber-400"
           >
-            {people.map(p => (
-              <option key={p.id} value={p.id}>
-                {p.fullName} {p.birthDate ? `(${p.birthDate.substring(0, 4)})` : ''}
-              </option>
-            ))}
+            {people.map(p => {
+              const y = parseDateComponents(p.birthDate).yearStr;
+              return (
+                <option key={p.id} value={p.id}>
+                  {p.fullName} {y ? `(${y})` : ''}
+                </option>
+              );
+            })}
           </select>
 
           {person1 && (
@@ -87,7 +91,7 @@ export const KinshipCalculator: React.FC<KinshipCalculatorProps> = ({
               <div className="min-w-0">
                 <div className="text-xs font-bold text-amber-100 truncate">{person1.fullName}</div>
                 <div className="text-[11px] text-slate-400">
-                  {person1.birthDate ? person1.birthDate.substring(0, 4) : 'Ano não informado'}
+                  {parseDateComponents(person1.birthDate).yearStr ? `Nascido(a) em ${parseDateComponents(person1.birthDate).yearStr}` : 'Ano não informado'}
                   {person1.birthPlace ? ` · ${person1.birthPlace}` : ''}
                 </div>
               </div>
@@ -105,11 +109,14 @@ export const KinshipCalculator: React.FC<KinshipCalculatorProps> = ({
             onChange={e => setPerson2Id(e.target.value)}
             className="w-full bg-slate-800 border border-slate-700 rounded-2xl p-3 text-sm text-slate-100 focus:outline-none focus:border-amber-400"
           >
-            {people.map(p => (
-              <option key={p.id} value={p.id}>
-                {p.fullName} {p.birthDate ? `(${p.birthDate.substring(0, 4)})` : ''}
-              </option>
-            ))}
+            {people.map(p => {
+              const y = parseDateComponents(p.birthDate).yearStr;
+              return (
+                <option key={p.id} value={p.id}>
+                  {p.fullName} {y ? `(${y})` : ''}
+                </option>
+              );
+            })}
           </select>
 
           {person2 && (
@@ -122,7 +129,7 @@ export const KinshipCalculator: React.FC<KinshipCalculatorProps> = ({
               <div className="min-w-0">
                 <div className="text-xs font-bold text-amber-100 truncate">{person2.fullName}</div>
                 <div className="text-[11px] text-slate-400">
-                  {person2.birthDate ? person2.birthDate.substring(0, 4) : 'Ano não informado'}
+                  {parseDateComponents(person2.birthDate).yearStr ? `Nascido(a) em ${parseDateComponents(person2.birthDate).yearStr}` : 'Ano não informado'}
                   {person2.birthPlace ? ` · ${person2.birthPlace}` : ''}
                 </div>
               </div>
@@ -170,7 +177,7 @@ export const KinshipCalculator: React.FC<KinshipCalculatorProps> = ({
                         {step.person.fullName}
                       </div>
                       <div className="text-[10px] text-slate-400 font-mono">
-                        {step.person.birthDate ? step.person.birthDate.substring(0, 4) : ''}
+                        {parseDateComponents(step.person.birthDate).yearStr || ''}
                       </div>
                     </div>
                   </div>

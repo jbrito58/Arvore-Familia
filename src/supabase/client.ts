@@ -771,7 +771,10 @@ export async function pullAllFromSupabase(): Promise<{
       };
     }
 
-    const currentTree = trees[0] || {
+    // Se houver árvores reais cadastradas pelo usuário, priorizar e filtrar a árvore fictícia de demonstração
+    const userRealTrees = trees.filter(t => t.id !== 'demo-tree-oliveira-ramos');
+    const finalTrees = userRealTrees.length > 0 ? userRealTrees : trees;
+    const currentTree = finalTrees[0] || {
       id: 'tree-supabase-default',
       name: 'Família Supabase',
       surname: 'Família',
@@ -781,15 +784,28 @@ export async function pullAllFromSupabase(): Promise<{
       updatedAt: new Date().toISOString(),
     };
 
+    const finalPeople = userRealTrees.length > 0 
+      ? people.filter(p => p.treeId !== 'demo-tree-oliveira-ramos')
+      : people;
+    const finalRelationships = userRealTrees.length > 0
+      ? relationships.filter(r => r.treeId !== 'demo-tree-oliveira-ramos')
+      : relationships;
+    const finalEvents = userRealTrees.length > 0
+      ? events.filter(e => e.treeId !== 'demo-tree-oliveira-ramos')
+      : events;
+    const finalMedia = userRealTrees.length > 0
+      ? media.filter(m => m.treeId !== 'demo-tree-oliveira-ramos')
+      : media;
+
     const newState: AppState = {
-      trees: trees.length > 0 ? trees : [currentTree],
+      trees: finalTrees,
       currentTreeId: currentTree.id,
       currentTree,
-      people,
-      relationships,
-      events,
-      media,
-      isDemoData: false,
+      people: finalPeople,
+      relationships: finalRelationships,
+      events: finalEvents,
+      media: finalMedia,
+      isDemoData: currentTree.id === 'demo-tree-oliveira-ramos',
     };
 
     return {

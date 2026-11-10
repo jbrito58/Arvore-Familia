@@ -28,6 +28,7 @@ import {
   FamilyMedia,
   ParentType
 } from '../types/genealogy';
+import { parseDateComponents } from '../utils/dateUtils';
 import {
   detectDuplicates,
   validatePersonChronology,
@@ -939,11 +940,14 @@ export const PersonFormModal: React.FC<PersonFormModalProps> = ({
                     <option value="">-- Não informado / Desconhecido --</option>
                     {existingPeople
                       .filter(p => p.id !== personToEdit?.id)
-                      .map(p => (
-                        <option key={p.id} value={p.id}>
-                          {p.fullName} {p.birthDate ? `(${p.birthDate.substring(0, 4)})` : ''}
-                        </option>
-                      ))}
+                      .map(p => {
+                        const y = parseDateComponents(p.birthDate).yearStr;
+                        return (
+                          <option key={p.id} value={p.id}>
+                            {p.fullName} {y ? `(${y})` : ''}
+                          </option>
+                        );
+                      })}
                   </select>
                 </div>
 
@@ -960,11 +964,14 @@ export const PersonFormModal: React.FC<PersonFormModalProps> = ({
                     <option value="">-- Não informada / Desconhecida --</option>
                     {existingPeople
                       .filter(p => p.id !== personToEdit?.id)
-                      .map(p => (
-                        <option key={p.id} value={p.id}>
-                          {p.fullName} {p.birthDate ? `(${p.birthDate.substring(0, 4)})` : ''}
-                        </option>
-                      ))}
+                      .map(p => {
+                        const y = parseDateComponents(p.birthDate).yearStr;
+                        return (
+                          <option key={p.id} value={p.id}>
+                            {p.fullName} {y ? `(${y})` : ''}
+                          </option>
+                        );
+                      })}
                   </select>
                 </div>
 

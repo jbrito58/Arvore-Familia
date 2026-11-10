@@ -14,6 +14,7 @@ import {
   ExternalLink
 } from 'lucide-react';
 import { FamilyEvent, Person, EventType } from '../types/genealogy';
+import { parseDateComponents } from '../utils/dateUtils';
 
 interface TimelineViewProps {
   events: FamilyEvent[];
@@ -73,8 +74,20 @@ export const TimelineView: React.FC<TimelineViewProps> = ({
       }
     });
 
-    // Ordenar cronologicamente
-    return list.sort((a, b) => (a.date || '').localeCompare(b.date || ''));
+    // Ordenar cronologicamente de forma robusta
+    return list.sort((a, b) => {
+      const pa = parseDateComponents(a.date);
+      const pb = parseDateComponents(b.date);
+      const ya = pa.year ?? 0;
+      const yb = pb.year ?? 0;
+      if (ya !== yb) return ya - yb;
+      const ma = pa.month ?? 0;
+      const mb = pb.month ?? 0;
+      if (ma !== mb) return ma - mb;
+      const da = pa.day ?? 0;
+      const db = pb.day ?? 0;
+      return da - db;
+    });
   }, [events, people]);
 
   // Filtragem
@@ -114,7 +127,7 @@ export const TimelineView: React.FC<TimelineViewProps> = ({
   };
 
   return (
-    <div className="max-w-4xl mx-auto px-4 py-8 space-y-8">
+    <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8">
       {/* Cabeçalho */}
       <div className="text-center max-w-xl mx-auto">
         <div className="inline-flex items-center justify-center w-12 h-12 rounded-2xl bg-emerald-500/10 border border-emerald-400/30 text-emerald-400 mb-3 shadow-lg shadow-emerald-950/20">

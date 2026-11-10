@@ -18,6 +18,7 @@ import {
 } from 'lucide-react';
 import { Person, Relationship, FamilyEvent, FamilyMedia, FamilyTree } from '../types/genealogy';
 import { PersonCard } from './PersonCard';
+import { formatLifespan, calculateUpcomingBirthday } from '../utils/dateUtils';
 
 interface DashboardProps {
   currentTree: FamilyTree;
@@ -98,32 +99,17 @@ export const Dashboard: React.FC<DashboardProps> = ({
 
   // Próximos Aniversários reais (considerando mês e dia em pessoas vivas)
   const upcomingBirthdays = useMemo(() => {
-    const today = new Date();
-    const currentMonth = today.getMonth() + 1;
-    const currentDay = today.getDate();
-
     return people
-      .filter(p => p.isLiving && p.birthDate && p.birthDate.length >= 10)
+      .filter(p => p.isLiving && p.birthDate)
       .map(p => {
-        const parts = p.birthDate!.split('-');
-        const birthMonth = parseInt(parts[1], 10);
-        const birthDay = parseInt(parts[2], 10);
-        const birthYear = parseInt(parts[0], 10);
-        const turningAge = today.getFullYear() - birthYear;
-
-        // Dias até o aniversário
-        let diffDays = (birthMonth - currentMonth) * 30 + (birthDay - currentDay);
-        if (diffDays < 0) diffDays += 365;
-
+        const b = calculateUpcomingBirthday(p.birthDate, p.isLiving);
+        if (!b) return null;
         return {
           person: p,
-          birthMonth,
-          birthDay,
-          turningAge,
-          diffDays,
-          formattedDate: `${birthDay.toString().padStart(2, '0')}/${birthMonth.toString().padStart(2, '0')}`,
+          ...b,
         };
       })
+      .filter((item): item is { person: Person; turningAge: number; diffDays: number; formattedDate: string; isToday: boolean } => item !== null)
       .sort((a, b) => a.diffDays - b.diffDays)
       .slice(0, 4);
   }, [people]);
@@ -332,8 +318,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
                   <div className="min-w-0">
                     <div className="text-xs font-semibold text-slate-100 truncate">{p.fullName}</div>
                     <div className="text-[11px] text-slate-400 truncate">
-                      {p.birthDate ? p.birthDate.substring(0, 4) : 'Ano desconhecido'}
-                      {p.deathDate ? ` — ${p.deathDate.substring(0, 4)}` : (p.isLiving ? ' — Presente' : '')}
+                      {formatLifespan(p.birthDate, p.deathDate, p.isLiving)}
                     </div>
                   </div>
                 </div>

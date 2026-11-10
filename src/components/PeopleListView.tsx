@@ -15,6 +15,7 @@ import {
   Trash2
 } from 'lucide-react';
 import { Person } from '../types/genealogy';
+import { formatLifespan } from '../utils/dateUtils';
 
 interface PeopleListViewProps {
   people: Person[];
@@ -68,7 +69,7 @@ export const PeopleListView: React.FC<PeopleListViewProps> = ({
       : 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?q=80&w=200&auto=format&fit=crop';
 
   return (
-    <div className="max-w-6xl mx-auto px-4 py-8 space-y-8">
+    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8">
       {/* Cabeçalho */}
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
         <div>
@@ -174,8 +175,7 @@ export const PeopleListView: React.FC<PeopleListViewProps> = ({
                   )}
 
                   <div className="text-xs text-slate-400 font-mono mt-0.5">
-                    {p.birthDate ? p.birthDate.substring(0, 4) : '?'}
-                    {p.isLiving ? ' — Presente' : ` — ${p.deathDate ? p.deathDate.substring(0, 4) : '?'}`}
+                    {formatLifespan(p.birthDate, p.deathDate, p.isLiving)}
                   </div>
 
                   {p.birthPlace && (

@@ -61,23 +61,29 @@ export function getInitialLocalState(): AppState {
         trees = [demoFamilyTree];
       }
 
-      const currentTreeId = parsed.currentTreeId || parsed.currentTree?.id || trees[0].id;
+      // Se o usuário tiver qualquer árvore real cadastrada, priorizá-la sempre sobre a árvore de demonstração
+      const realTree = trees.find(t => t.id !== DEMO_TREE_ID);
+      const currentTreeId = (realTree && (!parsed.currentTreeId || parsed.currentTreeId === DEMO_TREE_ID))
+        ? realTree.id
+        : (parsed.currentTreeId || parsed.currentTree?.id || (realTree ? realTree.id : trees[0].id));
+
+      const activeTree = trees.find(t => t.id === currentTreeId) || realTree || trees[0];
+      const isDemo = activeTree.id === DEMO_TREE_ID;
+
       const people = Array.isArray(parsed.people) ? parsed.people : demoPeople;
       const relationships = Array.isArray(parsed.relationships) ? parsed.relationships : demoRelationships;
       const events = Array.isArray(parsed.events) ? parsed.events : demoEvents;
       const media = Array.isArray(parsed.media) ? parsed.media : demoMedia;
 
-      const activeTree = trees.find(t => t.id === currentTreeId) || trees[0];
-
       return {
         trees,
-        currentTreeId,
+        currentTreeId: activeTree.id,
         currentTree: activeTree,
         people,
         relationships,
         events,
         media,
-        isDemoData: parsed.isDemoData !== undefined ? parsed.isDemoData : (currentTreeId === DEMO_TREE_ID),
+        isDemoData: isDemo,
       };
     }
   } catch (err) {

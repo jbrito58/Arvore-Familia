@@ -27,7 +27,8 @@ import {
   syncPersonToSupabase,
   deletePersonFromSupabase,
   syncRelationshipToSupabase,
-  syncTreeToSupabase
+  syncTreeToSupabase,
+  pullAllFromSupabase
 } from './supabase/client';
 
 import { Person, Relationship, FamilyEvent, FamilyMedia, FamilyTree } from './types/genealogy';
@@ -124,6 +125,29 @@ export default function App() {
       }
     });
     return () => unsubscribe();
+  }, []);
+
+  // Carregar dados reais da nuvem (Supabase) na inicialização
+  useEffect(() => {
+    async function loadCloudDataOnMount() {
+      try {
+        const res = await pullAllFromSupabase();
+        if (res.success && res.appState && res.appState.trees.length > 0) {
+          const realTree = res.appState.trees.find(t => t.id !== 'demo-tree-oliveira-ramos') || res.appState.trees[0];
+          if (realTree && realTree.id !== 'demo-tree-oliveira-ramos') {
+            setAppState(res.appState);
+            saveLocalState(res.appState);
+            const peopleInTree = getPeopleForTree(res.appState.people, realTree.id);
+            if (peopleInTree.length > 0) {
+              setSelectedPersonId(realTree.referencePersonId || peopleInTree[0].id);
+            }
+          }
+        }
+      } catch (err) {
+        console.warn('Carregamento inicial Supabase:', err);
+      }
+    }
+    loadCloudDataOnMount();
   }, []);
 
   // Salvar estado localmente quando alterado

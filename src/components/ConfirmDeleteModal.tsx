@@ -1,6 +1,7 @@
 import React from 'react';
 import { AlertTriangle, Trash2, X, ShieldAlert } from 'lucide-react';
 import { Person } from '../types/genealogy';
+import { formatLifespan } from '../utils/dateUtils';
 
 interface ConfirmDeleteModalProps {
   isOpen: boolean;
@@ -63,8 +64,7 @@ export const ConfirmDeleteModal: React.FC<ConfirmDeleteModalProps> = ({
               {person.fullName}
             </h4>
             <div className="text-[11px] text-slate-400 font-mono">
-              {person.birthDate ? person.birthDate.substring(0, 4) : 'Ano desconhecido'}
-              {person.deathDate ? ` — ${person.deathDate.substring(0, 4)}` : (person.isLiving ? ' — Presente' : '')}
+              {formatLifespan(person.birthDate, person.deathDate, person.isLiving)}
             </div>
           </div>
         </div>

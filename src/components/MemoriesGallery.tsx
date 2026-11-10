@@ -75,7 +75,7 @@ export const MemoriesGallery: React.FC<MemoriesGalleryProps> = ({
   };
 
   return (
-    <div className="max-w-6xl mx-auto px-4 py-8 space-y-8">
+    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8">
       {/* Cabeçalho */}
       <div className="text-center max-w-xl mx-auto">
         <div className="inline-flex items-center justify-center w-12 h-12 rounded-2xl bg-amber-500/10 border border-amber-400/30 text-amber-400 mb-3 shadow-lg shadow-amber-950/20">

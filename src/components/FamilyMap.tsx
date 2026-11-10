@@ -10,6 +10,7 @@ import {
   Globe
 } from 'lucide-react';
 import { Person, FamilyEvent } from '../types/genealogy';
+import { parseDateComponents } from '../utils/dateUtils';
 
 interface FamilyMapProps {
   people: Person[];
@@ -88,7 +89,7 @@ export const FamilyMap: React.FC<FamilyMapProps> = ({
   }, [clusters, selectedClusterName]);
 
   return (
-    <div className="max-w-6xl mx-auto px-4 py-8 space-y-8">
+    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8">
       {/* Cabeçalho */}
       <div className="text-center max-w-xl mx-auto">
         <div className="inline-flex items-center justify-center w-12 h-12 rounded-2xl bg-cyan-500/10 border border-cyan-400/30 text-cyan-400 mb-3 shadow-lg shadow-cyan-950/20">
@@ -198,7 +199,7 @@ export const FamilyMap: React.FC<FamilyMapProps> = ({
                         <div className="min-w-0">
                           <div className="text-xs font-semibold text-slate-100 truncate">{p.fullName}</div>
                           <div className="text-[10px] text-slate-400">
-                            Nascimento: {p.birthDate ? p.birthDate.substring(0, 4) : 'Ano desconhecido'}
+                            Nascimento: {parseDateComponents(p.birthDate).yearStr || 'Ano desconhecido'}
                           </div>
                         </div>
                       </div>
@@ -228,7 +229,7 @@ export const FamilyMap: React.FC<FamilyMapProps> = ({
                         <div className="min-w-0">
                           <div className="text-xs font-semibold text-slate-100 truncate">{p.fullName}</div>
                           <div className="text-[10px] text-slate-400">
-                            Falecimento: {p.deathDate ? p.deathDate.substring(0, 4) : 'Ano desconhecido'}
+                            Falecimento: {parseDateComponents(p.deathDate).yearStr || 'Ano desconhecido'}
                           </div>
                         </div>
                       </div>
