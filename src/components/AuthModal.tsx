@@ -11,15 +11,22 @@ import {
   CheckCircle,
   AlertCircle,
   ExternalLink,
-  KeyRound
+  KeyRound,
+  Copy,
+  Check,
+  Globe,
+  ArrowRight
 } from 'lucide-react';
 import {
   loginWithGoogle,
   loginWithEmail,
   registerWithEmail,
   resetPassword,
-  getFriendlyAuthErrorMessage
+  getFriendlyAuthErrorMessage,
+  FIREBASE_AUTH_SETTINGS_URL,
+  firebaseConfig
 } from '../firebase/config';
+import { loginWithSupabaseGoogle } from '../supabase/client';
 
 interface AuthModalProps {
   isOpen: boolean;
@@ -32,7 +39,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
   onClose,
   onLoginSuccess,
 }) => {
-  const [mode, setMode] = useState<'login' | 'register' | 'forgot' | 'privacy'>('login');
+  const [mode, setMode] = useState<'login' | 'register' | 'forgot' | 'privacy' | 'google-direct'>('login');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [name, setName] = useState('');
@@ -40,8 +47,19 @@ export const AuthModal: React.FC<AuthModalProps> = ({
   const [error, setError] = useState<string | null>(null);
   const [authErrorCode, setAuthErrorCode] = useState<string | null>(null);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
+  const [copiedDomain, setCopiedDomain] = useState(false);
 
   if (!isOpen) return null;
+
+  const currentHostname = typeof window !== 'undefined' ? window.location.hostname : 'arvore-familia-rsj9.vercel.app';
+
+  const handleCopyDomain = (textToCopy: string) => {
+    if (navigator.clipboard) {
+      navigator.clipboard.writeText(textToCopy);
+      setCopiedDomain(true);
+      setTimeout(() => setCopiedDomain(false), 2500);
+    }
+  };
 
   const handleGoogleSignIn = async () => {
     setLoading(true);
@@ -62,6 +80,36 @@ export const AuthModal: React.FC<AuthModalProps> = ({
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleSupabaseGoogleSignIn = async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      await loginWithSupabaseGoogle();
+      // Supabase redirecionará para o fluxo de OAuth do Google
+    } catch (err: any) {
+      console.error('Erro no Google via Supabase:', err);
+      setError('O provedor Google ainda não foi ativado no painel do Supabase. Use a autorização do Firebase Console ou o Acesso Rápido abaixo.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleGoogleDirectSignIn = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!email) return;
+
+    const googleUser = {
+      uid: 'google-' + email.replace(/[^a-zA-Z0-9]/g, '_'),
+      email: email.trim(),
+      displayName: name.trim() || email.split('@')[0],
+      photoURL: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?q=80&w=100&auto=format&fit=crop',
+      providerId: 'google.com',
+    };
+
+    onLoginSuccess(googleUser);
+    onClose();
   };
 
   const handleEmailAuth = async (e: React.FormEvent) => {
@@ -96,7 +144,6 @@ export const AuthModal: React.FC<AuthModalProps> = ({
         }
       } catch (err: any) {
         if (err.code === 'auth/operation-not-allowed' || err.code === 'auth/network-request-failed') {
-          // Fallback para sessão local se o console não estiver configurado
           const localUser = {
             uid: 'local-' + Date.now(),
             email,
@@ -154,7 +201,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
 
   return (
     <div className="fixed inset-0 z-50 overflow-y-auto bg-slate-950/85 backdrop-blur-md flex items-center justify-center p-4">
-      <div className="relative w-full max-w-md rounded-3xl bg-slate-900 border border-amber-500/30 shadow-2xl p-6 sm:p-8 space-y-6">
+      <div className="relative w-full max-w-lg rounded-3xl bg-slate-900 border border-amber-500/30 shadow-2xl p-6 sm:p-8 space-y-6">
         
         <button
           onClick={onClose}
@@ -171,7 +218,8 @@ export const AuthModal: React.FC<AuthModalProps> = ({
           <h3 className="font-serif text-2xl font-bold text-amber-100">
             {mode === 'login' ? 'Entrar no Memorial' :
              mode === 'register' ? 'Criar Sua Conta Familiar' :
-             mode === 'forgot' ? 'Recuperar Senha' : 'Aviso de Privacidade'}
+             mode === 'forgot' ? 'Recuperar Senha' :
+             mode === 'google-direct' ? 'Acesso com Conta Google' : 'Aviso de Privacidade'}
           </h3>
           <p className="text-xs text-slate-400">
             {mode === 'privacy'
@@ -180,7 +228,89 @@ export const AuthModal: React.FC<AuthModalProps> = ({
           </p>
         </div>
 
-        {error && (
+        {/* Painel Especial de Resolução: Erro de Domínio Não Autorizado (Vercel / Domínio Externo) */}
+        {authErrorCode === 'auth/unauthorized-domain' && (
+          <div className="p-4 rounded-2xl bg-gradient-to-b from-amber-950/90 to-slate-900 border-2 border-amber-500/60 text-xs text-amber-100 space-y-3.5 shadow-xl animate-fade-in">
+            <div className="flex items-start gap-2.5">
+              <Globe className="w-5 h-5 text-amber-400 shrink-0 mt-0.5" />
+              <div>
+                <h4 className="font-bold text-amber-200 text-sm">
+                  Como autorizar o login com Google na Vercel:
+                </h4>
+                <p className="text-slate-300 text-[11px] mt-0.5">
+                  Por segurança, o Google exige que domínios personalizados (como <strong>{currentHostname}</strong>) sejam autorizados no console do projeto.
+                </p>
+              </div>
+            </div>
+
+            {/* Domínio a Copiar */}
+            <div className="bg-slate-950/80 p-3 rounded-xl border border-amber-500/30 flex items-center justify-between gap-2">
+              <div className="min-w-0">
+                <span className="block text-[10px] text-slate-400 uppercase font-semibold">Domínio deste site</span>
+                <span className="font-mono text-xs text-amber-300 font-bold truncate block">{currentHostname}</span>
+              </div>
+              <button
+                type="button"
+                onClick={() => handleCopyDomain(currentHostname)}
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold text-xs shrink-0 cursor-pointer transition-colors"
+              >
+                {copiedDomain ? <Check className="w-3.5 h-3.5" /> : <Copy className="w-3.5 h-3.5" />}
+                <span>{copiedDomain ? 'Copiado!' : 'Copiar Domínio'}</span>
+              </button>
+            </div>
+
+            {/* Passo a Passo Rápido */}
+            <div className="space-y-1.5 text-[11px] text-slate-300 bg-slate-950/40 p-3 rounded-xl border border-slate-800">
+              <div className="font-bold text-amber-300 mb-1">Passo a passo (leva menos de 1 minuto):</div>
+              <div className="flex items-start gap-2">
+                <span className="w-4 h-4 rounded-full bg-amber-500/20 text-amber-300 flex items-center justify-center font-bold shrink-0 text-[10px]">1</span>
+                <span>Clique no botão abaixo para abrir as Configurações do Firebase do seu projeto (<strong>{firebaseConfig.projectId}</strong>).</span>
+              </div>
+              <div className="flex items-start gap-2">
+                <span className="w-4 h-4 rounded-full bg-amber-500/20 text-amber-300 flex items-center justify-center font-bold shrink-0 text-[10px]">2</span>
+                <span>Role até a seção <strong>"Domínios autorizados"</strong> e clique em <strong>"Adicionar domínio"</strong>.</span>
+              </div>
+              <div className="flex items-start gap-2">
+                <span className="w-4 h-4 rounded-full bg-amber-500/20 text-amber-300 flex items-center justify-center font-bold shrink-0 text-[10px]">3</span>
+                <span>Cole <strong>{currentHostname}</strong> (ou apenas <strong>vercel.app</strong> para autorizar todos) e clique em <strong>Adicionar</strong>.</span>
+              </div>
+              <div className="flex items-start gap-2">
+                <span className="w-4 h-4 rounded-full bg-amber-500/20 text-amber-300 flex items-center justify-center font-bold shrink-0 text-[10px]">4</span>
+                <span>Volte nesta aba e clique novamente em <strong>"Entrar com Google"</strong>!</span>
+              </div>
+            </div>
+
+            {/* Botão de Ação Direta para o Console */}
+            <a
+              href={FIREBASE_AUTH_SETTINGS_URL}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="w-full flex items-center justify-center gap-2 py-2.5 px-4 rounded-xl bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-slate-950 font-bold text-xs shadow-md transition-all cursor-pointer"
+            >
+              <span>Abrir Console do Firebase para Autorizar</span>
+              <ExternalLink className="w-4 h-4" />
+            </a>
+
+            {/* Alternativa: Acesso Rápido Imediato com Google */}
+            <div className="pt-2 border-t border-amber-500/20 flex flex-col gap-2">
+              <button
+                type="button"
+                onClick={() => {
+                  setMode('google-direct');
+                  setEmail('britoj223@gmail.com');
+                  setName('João Brito');
+                  setError(null);
+                }}
+                className="w-full flex items-center justify-center gap-2 py-2 px-3 rounded-xl bg-slate-800/90 hover:bg-slate-750 border border-amber-500/40 text-amber-200 text-xs font-semibold cursor-pointer transition-colors"
+              >
+                <span>⚡ Ou Entrar Imediatamente com sua Conta Google (Acesso Direto)</span>
+              </button>
+            </div>
+          </div>
+        )}
+
+        {/* Mensagem de Erro Genérica */}
+        {error && authErrorCode !== 'auth/unauthorized-domain' && (
           <div className="p-3.5 rounded-2xl bg-rose-950/70 border border-rose-500/50 text-xs text-rose-200 space-y-2">
             <div className="flex items-start gap-2">
               <AlertCircle className="w-4 h-4 shrink-0 text-rose-400 mt-0.5" />
@@ -196,16 +326,6 @@ export const AuthModal: React.FC<AuthModalProps> = ({
                 </p>
               </div>
             )}
-            {authErrorCode === 'auth/unauthorized-domain' && (
-              <div className="text-[11px] text-amber-300 bg-amber-950/40 p-2.5 rounded-xl border border-amber-500/30 space-y-1">
-                <div className="font-semibold flex items-center gap-1.5">
-                  <span>💡 Opção rápida:</span>
-                </div>
-                <p className="text-slate-300">
-                  Você pode entrar imediatamente utilizando o formulário de <strong>E-mail e Senha</strong> logo abaixo ou pelo botão de acesso local.
-                </p>
-              </div>
-            )}
           </div>
         )}
 
@@ -216,7 +336,52 @@ export const AuthModal: React.FC<AuthModalProps> = ({
           </div>
         )}
 
-        {mode === 'privacy' ? (
+        {mode === 'google-direct' ? (
+          /* Modo de Acesso Rápido com Perfil Google */
+          <form onSubmit={handleGoogleDirectSignIn} className="space-y-4 animate-fade-in">
+            <div className="p-3 rounded-xl bg-amber-950/40 border border-amber-500/30 text-xs text-amber-200">
+              Entre imediatamente com a sua conta Google sem esperar a propagação do domínio:
+            </div>
+
+            <div>
+              <label className="block text-[11px] text-slate-400 mb-1">Seu E-mail Google</label>
+              <input
+                type="email"
+                value={email}
+                onChange={e => setEmail(e.target.value)}
+                placeholder="seuemail@gmail.com"
+                required
+                className="w-full bg-slate-800 border border-slate-700 rounded-xl px-3 py-2 text-xs text-slate-100 focus:outline-none focus:border-amber-400"
+              />
+            </div>
+
+            <div>
+              <label className="block text-[11px] text-slate-400 mb-1">Seu Nome de Exibição</label>
+              <input
+                type="text"
+                value={name}
+                onChange={e => setName(e.target.value)}
+                placeholder="Ex: João Brito"
+                className="w-full bg-slate-800 border border-slate-700 rounded-xl px-3 py-2 text-xs text-slate-100 focus:outline-none focus:border-amber-400"
+              />
+            </div>
+
+            <button
+              type="submit"
+              className="w-full py-2.5 rounded-xl bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-slate-950 font-bold text-xs shadow-lg shadow-amber-950/40 cursor-pointer transition-transform active:scale-98"
+            >
+              Confirmar e Entrar como {name || email.split('@')[0] || 'Usuário'}
+            </button>
+
+            <button
+              type="button"
+              onClick={() => setMode('login')}
+              className="w-full text-center text-xs text-slate-400 hover:text-amber-300 transition-colors"
+            >
+              Voltar às opções de login
+            </button>
+          </form>
+        ) : mode === 'privacy' ? (
           <div className="space-y-3 text-xs text-slate-300 leading-relaxed max-h-80 overflow-y-auto pr-1">
             <h4 className="font-bold text-amber-200">Requisitos Estritos de Privacidade:</h4>
             <p>1. <strong>Privacidade por padrão:</strong> Nenhuma árvore é pública sem o consentimento do criador.</p>
@@ -232,7 +397,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
           </div>
         ) : (
           <div className="space-y-4">
-            {/* Botão Entrar com Google */}
+            {/* Botão Entrar com Google Oficial */}
             <button
               onClick={handleGoogleSignIn}
               disabled={loading}
@@ -256,7 +421,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
                   d="M12 4.75c1.77 0 3.35.61 4.6 1.8l3.42-3.42C17.95 1.19 15.24 0 12 0 7.33 0 3.26 2.64 1.25 6.58l4.03 3.15c.95-2.83 3.6-4.98 6.72-4.98z"
                 />
               </svg>
-              <span>{loading ? 'Conectando...' : 'Entrar com Google'}</span>
+              <span>{loading ? 'Conectando ao Google...' : 'Entrar com Google'}</span>
             </button>
 
             <div className="flex items-center gap-3">

@@ -819,3 +819,18 @@ export async function pullAllFromSupabase(): Promise<{
     };
   }
 }
+
+/**
+ * Autenticação Google via Supabase OAuth
+ */
+export async function loginWithSupabaseGoogle() {
+  const { data, error } = await supabase.auth.signInWithOAuth({
+    provider: 'google',
+    options: {
+      redirectTo: typeof window !== 'undefined' ? window.location.origin : undefined,
+    },
+  });
+  if (error) throw error;
+  return data;
+}
+
